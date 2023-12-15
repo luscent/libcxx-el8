@@ -133,17 +133,25 @@ mv ../%{libcxx_srcdir} libcxx
 mv ../%{libcxxabi_srcdir} libcxxabi
 mv ../%{libunwind_srcdir} libunwind
 mkdir -p runtimes/cmake/Modules
-mv %{SOURCE8} %{SOURCE9} runtimes/cmake/Modules/
+cp %{SOURCE8} %{SOURCE9} runtimes/cmake/Modules/
 %autopatch -p1
 
 %py3_shebang_fix libcxx/utils/
 
 %build
 
+	
+mkdir -p %{_vpath_builddir}
+cd %{_vpath_builddir}
+ 
+
+
 # Copy CFLAGS into ASMFLAGS, so -fcf-protection is used when compiling assembly files.
 export ASMFLAGS=$CFLAGS
-
-%cmake -GNinja \
+%cmake .. -GNinja \
+	-DCMAKE_BUILD_ROOT=./nwkee \
+        -DCMAKE_C_COMPILER=/usr/bin/clang \
+	-DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
 	-DCMAKE_BUILD_TYPE=RelWithDebInfo \
 	-DCMAKE_MODULE_PATH="%{_libdir}/cmake/llvm;%{_datadir}/llvm/cmake/Modules" \
 	-DCMAKE_POSITION_INDEPENDENT_CODE=ON \
@@ -161,11 +169,13 @@ export ASMFLAGS=$CFLAGS
 	-DLIBUNWIND_INSTALL_INCLUDE_DIR=%{_includedir}/llvm-libunwind \
 	-DLIBUNWIND_INSTALL_SPHINX_HTML_DIR=%{_pkgdocdir}/html
 
-%cmake_build
+%cmake_build -DCMAKE
 
 %install
 
+pushd %{_vpath_builddir}
 %cmake_install
+popd
 
 # We can't install the unversionned path on default location because that would conflict with
 # https://src.fedoraproject.org/rpms/libunwind
